@@ -1,0 +1,109 @@
+const express = require("express")
+const router = express.Router()
+const {Firestore} = require('@google-cloud/firestore');
+const firestore = new Firestore();
+
+let userData = []
+let images = []
+
+// [async function way] push user creds to Firestore with autoGen ID
+async function pushUser(firstName, lastName, age) {
+    const res = await firestore.collection('users').add({
+        firstName: firstName,
+        lastName: lastName,
+        age: age,
+    });
+    console.log('Added document with ID: ', res.id)
+    return res.id
+}
+
+// [async trycatch way] get user
+router.get('/users', async (req, res) => {
+    try {
+        const ref = firestore.collection('users');
+        const snapshot = await ref.get();
+
+        if (snapshot.empty) {
+            console.log('No matching documents.');
+            return res.status(404).json({ error: 'No matching documents.' });
+        }
+
+        res.json(snapshot.docs.map(doc => doc.data()));
+    } catch (error) {
+        console.error('Error getting documents', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+router
+    .route('/user/addUser')
+    .get((req, res) => {
+        res.status(400).json({ status: "400" ,error: "Bad Request" })
+    })
+    .put((req, res) => {
+        res.status(400).json({ status: "400" ,error: "Bad Request" })
+    })
+    .post((req, res) => {
+        console.log('user add start')
+
+        const { firstName, lastName, age } = req.body;
+
+        // Check if required data is provided
+        if (!firstName || !lastName || !age) {
+          return res.status(400).json({ status: "400" ,error: "Bad Request"  })
+        }
+
+        const pushGetID = pushUser(firstName,lastName,age)
+
+        // Add user to the array
+        // userData.push(user);
+
+        // Respond with the added user
+        res.json({
+            message:"add to Firestore Success",
+        }).status(200);
+    })
+    .delete((req, res) => {
+        res.status(400).json({ status: "400" ,error: "Bad Request" })
+    })
+
+router.get('/user/:id', async (req, res) => {
+    const userID = req.params.id;
+    try {
+        const ref = firestore.collection('users').doc(userID);
+        const snapshot = await ref.get();
+
+        if (!snapshot.exists) {
+            console.log('No matching document.');
+            return res.status(404).json({ error: 'No matching document.' });
+        }
+
+        // Assuming you want to send the data from the snapshot in the response
+        res.json(snapshot.data());
+    } catch (error) {
+        console.error('Error getting document', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// CLOUD FIRESTORE
+// Create a new client
+
+async function quickstart() {
+  // Obtain a document reference.
+  const document = firestore.doc('posts/intro-to-firestore');
+
+  // Enter new data into the document.
+  await document.set({
+    title: 'Welcome to Firestore',
+    body: 'Hello World',
+  });
+  console.log('Entered new data into the document');
+}
+
+router.get('/users/firestore', (req, res) => {
+    quickstart()
+    res.json({message:"Firestore executed"})
+})
+
+module.exports = router
