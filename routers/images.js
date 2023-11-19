@@ -8,6 +8,7 @@ const util = require("util");
 const Multer = require("multer");
 const maxSize = 2 * 1080 * 1920;
 const bucket = storage.bucket("cc-fashap-private");
+const randGen = require('./random-generator.js');
 
 // Multer middleware configuration
 let processFile = Multer({
@@ -23,6 +24,7 @@ async function pushFileInfo(userID, fileName) {
         userID: userID,
         fileName: fileName,
     });
+    console.log("upload complete");
     console.log('Added document with doc ID: ', res.id);
     return res.id;
 }
@@ -53,8 +55,11 @@ router.route('/image/addImage')
                 });
             }
 
+            // Generate random file name
+            const fileName = randGen() + ".JPG"
+
             // Create a new blob in the bucket and upload the file data.
-            const blob = bucket.file(req.file.originalname);
+            const blob = bucket.file(fileName);
             const blobStream = blob.createWriteStream({
                 resumable: false,
             });
@@ -69,7 +74,6 @@ router.route('/image/addImage')
                 // Create URL for direct file access via HTTP.
                 const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
 
-
                 const { userID } = req.body;
 
                 if (!userID) {
@@ -81,11 +85,12 @@ router.route('/image/addImage')
                 }
 
                 // Move the pushFileInfo call inside the finish event
-                pushFileInfo(userID, req.file.originalname);
+                pushFileInfo(userID, fileName);
 
                 // Now send the response after processing is complete
                 res.status(200).send({
-                    message: "Uploaded the file successfully: " + req.file.originalname,
+                    message: "Uploaded the file successfully",
+                    fileName: fileName,
                     url: publicUrl,
                 });
             });
@@ -109,6 +114,24 @@ router.route('/image/addImage')
             error: "Bad Request"
         });
     });
+
+// randGen sample
+// router.route('/image/generate').get((req, res) =>{
+//     const randomName = randGen("hereIsMyName");
+//     res.json({
+//         message: "success",
+//         randomName: randomName
+//     });
+// });
+
+// randGen sample
+router.route('/image/randgen').get((req, res) =>{
+    const randomName = randGen();
+    res.json({
+        message: "success",
+        randomName: randomName
+    });
+});
 
 // Export the router
 module.exports = router;
