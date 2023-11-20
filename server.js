@@ -14,9 +14,9 @@ app.get('/', (req, res) => {
 const usersRouter = require('./routers/users')
 app.use(usersRouter)
 
-// Route users from users.js router
+// Route users from images.js router
 const imagesRouter = require('./routers/images')
-app.use(imagesRouter)
+app.use(imagesRouter.router)
 
 // Catch-all route for 404 errors
 app.use((req, res) => {

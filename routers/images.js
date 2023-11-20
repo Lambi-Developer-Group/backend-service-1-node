@@ -8,6 +8,7 @@ const util = require("util");
 const Multer = require("multer");
 const maxSize = 2 * 1080 * 1920;
 const bucket = storage.bucket("cc-fashap-private");
+const bucketName = 'cc-fashap-private';
 const randGen = require('./random-generator.js');
 
 // Multer middleware configuration
@@ -85,7 +86,7 @@ router.route('/image/addImage')
                 }
 
                 // Move the pushFileInfo call inside the finish event
-                pushFileInfo(userID, fileName);
+                await pushFileInfo(userID, fileName);
 
                 // Now send the response after processing is complete
                 res.status(200).send({
@@ -133,5 +134,52 @@ router.route('/image/randgen').get((req, res) =>{
     });
 });
 
+router.route('/image/delete-jokowi').delete( async(req, res) =>{
+    console.log("deleting started");
+    try {
+        const fileName = 'jokowi.jpg';
+
+        // Delete the object
+        await storage.bucket(bucketName).file(fileName).delete();
+
+        console.log(`Object "${fileName}" deleted successfully.`);
+        res.status(200).send(`Object "${fileName}" deleted successfully.`);
+      } catch (error) {
+        console.error('Error deleting object:', error);
+        res.status(500).send('Internal Server Error');
+      }
+});
+
+async function deleteFile(fileName){
+    try {
+        // Delete the object
+        await storage.bucket(bucketName).file(fileName).delete();
+
+        console.log(`Object "${fileName}" deleted successfully.`);
+    } catch (error) {
+        console.error('Error deleting object:', error);
+    }
+}
+
+async function deleteFiles(objectNames){
+    console.log("deleting files started");
+    try {
+        // Delete multiple objects
+        const deletePromises = objectNames.map(async (fileName) => {
+            await storage.bucket(bucketName).file(fileName).delete();
+            console.log(`Object "${fileName}" deleted successfully.`);
+        });
+
+    await Promise.all(deletePromises);
+
+    } catch (error) {
+        console.error('Error deleting object:', error);
+    }
+}
+
 // Export the router
-module.exports = router;
+module.exports = {
+    router,
+    deleteFile,
+    deleteFiles
+};
