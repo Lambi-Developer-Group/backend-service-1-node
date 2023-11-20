@@ -116,38 +116,13 @@ router.route('/image/addImage')
         });
     });
 
-// randGen sample
-// router.route('/image/generate').get((req, res) =>{
-//     const randomName = randGen("hereIsMyName");
-//     res.json({
-//         message: "success",
-//         randomName: randomName
-//     });
-// });
-
-// randGen sample
+// Test randGen to generate randomName
 router.route('/image/randgen').get((req, res) =>{
     const randomName = randGen();
     res.json({
         message: "success",
         randomName: randomName
     });
-});
-
-router.route('/image/delete-jokowi').delete( async(req, res) =>{
-    console.log("deleting started");
-    try {
-        const fileName = 'jokowi.jpg';
-
-        // Delete the object
-        await storage.bucket(bucketName).file(fileName).delete();
-
-        console.log(`Object "${fileName}" deleted successfully.`);
-        res.status(200).send(`Object "${fileName}" deleted successfully.`);
-      } catch (error) {
-        console.error('Error deleting object:', error);
-        res.status(500).send('Internal Server Error');
-      }
 });
 
 async function deleteFile(fileName){

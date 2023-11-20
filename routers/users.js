@@ -4,9 +4,6 @@ const {Firestore} = require('@google-cloud/firestore');
 const firestore = new Firestore();
 const imageHandler = require("./images")
 
-let userData = []
-let images = []
-
 // [async function way] push user creds to Firestore with autoGen ID
 async function pushUser(firstName, lastName, age) {
     const res = await firestore.collection('users').add({
@@ -55,9 +52,6 @@ router
         }
 
         const pushGetID = pushUser(firstName,lastName,age)
-
-        // Add user to the array
-        // userData.push(user);
 
         // Respond with the added user
         res.json({
@@ -160,21 +154,6 @@ router.delete('/user/images/:id', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
-
-// CLOUD FIRESTORE
-// Create a new client
-
-async function quickstart() {
-  // Obtain a document reference.
-  const document = firestore.doc('posts/intro-to-firestore');
-
-  // Enter new data into the document.
-  await document.set({
-    title: 'Welcome to Firestore',
-    body: 'Hello World',
-  });
-  console.log('Entered new data into the document');
-}
 
 router.get('/users/firestore', (req, res) => {
     quickstart()
