@@ -7,8 +7,8 @@ const storage = new Storage();
 const util = require("util");
 const Multer = require("multer");
 const maxSize = 2 * 1080 * 1920;
-const bucket = storage.bucket("cc-fashap-private");
-const bucketName = 'cc-fashap-private';
+const bucket = storage.bucket("cc-lambi-private");
+const bucketName = 'cc-lambi-private';
 const randGen = require('./random-generator.js');
 
 // Multer middleware configuration
