@@ -20,14 +20,63 @@ let processFile = Multer({
 let processFileMiddleware = util.promisify(processFile);
 
 // push file info to Firestore with autoGen ID
-async function pushFileInfo(userID, fileName) {
-    const res = await firestore.collection('images').add({
+async function pushFileInfo(sessionID, userID, fileName) {
+    const docRef = firestore.collection('images').doc(sessionID);
+
+    // Set the data for the document
+    await docRef.set({
         userID: userID,
-        fileName: fileName,
+        fileName: [fileName],
     });
-    console.log("upload complete");
-    console.log('Added document with doc ID: ', res.id);
-    return res.id;
+
+    console.log("Upload complete");
+    console.log('Added document with sessionID: ', sessionID)
+    return sessionID;
+}
+
+// put file info to existing array document with correct sessionID
+async function putFileInfo(sessionID, fileName) {
+    // Retrieve the document reference for the specified session ID
+    const docRef = firestore.collection('images').doc(sessionID);
+
+    // Get the current document data
+    const docSnapshot = await docRef.get();
+    if (!docSnapshot.exists) {
+        console.error('Document does not exist');
+        return;
+    }
+
+    // Update the 'fileName' array in the document
+    const currentData = docSnapshot.data();
+    const currentFileNameArray = currentData.fileName || [];
+    currentFileNameArray.push(fileName);
+
+    // Update the document with the new 'fileName' array
+    await docRef.update({
+        fileName: currentFileNameArray
+    });
+    console.log('Added document with sessionID: ', sessionID)
+    return sessionID;
+}
+
+async function isSameSession(sessionID) {
+    const imageRef = firestore.collection('images').doc(sessionID);
+
+    try {
+        const imageSnapshot = await imageRef.get();
+
+        if (imageSnapshot.exists) {
+            console.log("sessionID found, putting image to existing document..");
+            return true;
+        } else {
+            console.log("sessionID not found, creating new document..");
+            return false;
+        }
+    } catch (error) {
+        console.error("Error checking sessionID:", error);
+        // Handle the error as needed, e.g., throw an exception or return false
+        return false;
+    }
 }
 
 // function to add image to Cloud Storage and store its info on Firestore
@@ -74,8 +123,7 @@ router.route('/image/addImage')
             blobStream.on("finish", async (data) => {
                 // Create URL for direct file access via HTTP.
                 const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
-
-                const { userID } = req.body;
+                const { userID, sessionID } = req.body;
 
                 if (!userID) {
                     return res.status(400).json({
@@ -85,8 +133,14 @@ router.route('/image/addImage')
                     });
                 }
 
+                if (await isSameSession(sessionID)) {
+                    await putFileInfo(sessionID, fileName)
+                } else{
+                    await pushFileInfo(sessionID, userID, fileName)
+                }
+                
                 // Move the pushFileInfo call inside the finish event
-                await pushFileInfo(userID, fileName);
+                // await pushFileInfo(sessionID, userID, fileName)
 
                 // Now send the response after processing is complete
                 res.status(200).send({
