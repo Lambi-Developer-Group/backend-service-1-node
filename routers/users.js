@@ -5,15 +5,22 @@ const firestore = new Firestore();
 const imageHandler = require("./images")
 
 // [async function way] push user creds to Firestore with autoGen ID
-async function pushUser(firstName, lastName, age) {
+async function pushUser(firstName, lastName, age, password, email) {
+    const timestamp = Date.now()
+    const date = new Date(timestamp);
+    const formattedDate = date.toISOString();
     const res = await firestore.collection('users').add({
         firstName: firstName,
         lastName: lastName,
         age: age,
+        password: password,
+        createdAt: formattedDate,
+        email: email,
     });
     console.log('Added document with ID: ', res.id)
     return res.id
 }
+
 
 // [async trycatch way] get user
 router.get('/users', async (req, res) => {
@@ -33,6 +40,7 @@ router.get('/users', async (req, res) => {
     }
 });
 
+// Add User Router
 router
     .route('/user/addUser')
     .get((req, res) => {
@@ -41,27 +49,29 @@ router
     .put((req, res) => {
         res.status(400).json({ status: "400" ,error: "Bad Request" })
     })
-    .post((req, res) => {
+    .post(async (req, res) => {
         console.log('user add start')
 
-        const { firstName, lastName, age } = req.body;
+        const { firstName, lastName, age, password, email } = req.body;
 
         // Check if required data is provided
-        if (!firstName || !lastName || !age) {
-          return res.status(400).json({ status: "400" ,error: "Bad Request"  })
+        if (!firstName || !lastName || !age || !password || !email) {
+          return res.status(400).json({ status: "400" ,error: "Bad Request, Please fill all the required Field"  })
         }
 
-        const pushGetID = pushUser(firstName,lastName,age)
+        userID = await pushUser(firstName, lastName, age, password, email)
 
         // Respond with the added user
         res.json({
             message:"add to Firestore Success",
+            "Added document with userID": userID,
         }).status(200);
     })
     .delete((req, res) => {
         res.status(400).json({ status: "400" ,error: "Bad Request" })
     })
 
+// Get User Router
 router.get('/user/:id', async (req, res) => {
     const userID = req.params.id;
     try {
@@ -81,7 +91,7 @@ router.get('/user/:id', async (req, res) => {
     }
 });
 
-// get all images in bucket
+// get all images in bucket from firestore
 router.get('/images', async (req, res) => {
     try {
         const ref = firestore.collection('images');
@@ -102,7 +112,7 @@ router.get('/images', async (req, res) => {
     }
 });
 
-// get all images associated with this user
+// get all images associated with this user from firestore
 router.get('/images/:id', async (req, res) => {
     const userID = req.params.id;
     try {
@@ -124,7 +134,7 @@ router.get('/images/:id', async (req, res) => {
     }
 });
 
-// deletes all images associated with this user
+// deletes all images associated with this user from firestore
 router.delete('/user/images/:id', async (req, res) => {
     const userID = req.params.id;
     try {
