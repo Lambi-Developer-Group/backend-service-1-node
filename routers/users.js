@@ -3,6 +3,7 @@ const router = express.Router()
 const {Firestore} = require('@google-cloud/firestore');
 const firestore = new Firestore();
 const imageHandler = require("./images")
+const bcrypt = require('bcryptjs');
 
 // [async function way] push user creds to Firestore with autoGen ID
 async function pushUser(firstName, lastName, age, password, email) {
@@ -40,6 +41,13 @@ router.get('/users', async (req, res) => {
     }
 });
 
+// Hash Password with bcrypt
+async function hashPassword(password) {
+    const saltRounds = 10; // Adjust the saltRounds value as needed
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    return hashedPassword;
+}
+
 // Add User Router
 router
     .route('/user/addUser')
@@ -59,9 +67,10 @@ router
           return res.status(400).json({ status: "400" ,error: "Bad Request, Please fill all the required Field"  })
         }
 
-        userID = await pushUser(firstName, lastName, age, password, email)
+        const hashedPassword = await hashPassword(password)
 
-        // Respond with the added user
+        userID = await pushUser(firstName, lastName, age, hashedPassword, email)
+
         res.json({
             message:"add to Firestore Success",
             "Added document with userID": userID,
@@ -130,6 +139,36 @@ router.get('/images/:id', async (req, res) => {
         res.json(fileNames);
     } catch (error) {
         console.error('Error getting document', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// Login User Router
+router.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+    console.log("login started",email);
+
+    try {
+        const userRef = firestore.collection('users').where('email', '==', email);
+        const userSnapshot = await userRef.get();
+
+        if (userSnapshot.empty) {
+            console.log("field empty!");
+            return res.status(401).json({ error: 'Wrong email or password' });
+        }
+
+        const userData = userSnapshot.docs[0].data();
+        const isPasswordValid = await bcrypt.compare(password.toString(), userData.password.toString());
+
+        if (isPasswordValid) {
+            console.log("login accepted");
+            res.json({ success: true, user: userData });
+        } else {
+            console.log("login rejected");
+            res.status(401).json({ error: 'Wrong email or password' });
+        }
+    } catch (error) {
+        console.error('Error during login', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
