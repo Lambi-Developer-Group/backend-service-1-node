@@ -1,5 +1,6 @@
 const { Firestore } = require('@google-cloud/firestore');
 const firestore = new Firestore();
+const { deleteFiles } = require('../services/images');
 const { NotFound } = require('../errors');
 
 const getAll = async () => {
@@ -30,7 +31,47 @@ const getSpesific = async (req) => {
   return result;
 };
 
+const getImages = async (req) => {
+  const userID = req.params.id;
+  const ref = firestore.collection('images');
+  const snapshot = await ref.where('userID', '==', userID).get();
+
+  // Extract the fileNames from the snapshot
+  const fileNames = [];
+  snapshot.forEach((doc) => {
+    const filename = doc.data().fileName;
+    fileNames.push(filename);
+  });
+
+  // Assuming you want to send the data from the snapshot in the response
+  return fileNames;
+};
+
+const deleteImages = async (req) => {
+  const userID = req.params.id;
+  const ref = firestore.collection('images');
+  const snapshot = await ref.where('userID', '==', userID).get();
+
+  // Extract the fileNames from the snapshot
+  const fileNames = [];
+  snapshot.forEach((doc) => {
+    const filename = doc.data().fileName;
+    fileNames.push(filename);
+
+    // Delete the document from Firestore
+    const docRef = ref.doc(doc.id);
+    docRef.delete();
+  });
+
+  // delete object based on fileNames
+  await deleteFiles(fileNames);
+
+  return fileNames;
+};
+
 module.exports = {
   getAll,
   getSpesific,
+  getImages,
+  deleteImages,
 };
