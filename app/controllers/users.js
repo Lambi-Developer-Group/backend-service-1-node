@@ -1,44 +1,27 @@
-const express = require('express');
-const router = express.Router();
-const { Firestore } = require('@google-cloud/firestore');
-const firestore = new Firestore();
-const imageHandler = require('./images');
-const bcrypt = require('bcryptjs');
+const { StatusCodes } = require('http-status-codes');
+const { getAll, getSpesific } = require('../services/users');
 
 const getUsers = async (req, res, next) => {
   try {
-    const ref = firestore.collection('users');
-    const snapshot = await ref.get();
+    const result = await getAll();
 
-    if (snapshot.empty) {
-      console.log('No matching documents.');
-      return res.status(404).json({ error: 'No matching documents.' });
-    }
-
-    res.json(snapshot.docs.map((doc) => doc.data()));
+    res
+      .status(StatusCodes.OK)
+      .json({ message: 'success retrive all users', data: result });
   } catch (error) {
-    // console.error('Error getting documents', error);
-    res.status(500).json({ error: 'Internal Server Error' });
     next(error);
   }
 };
 
 const getSpesificUser = async (req, res, next) => {
-  const userID = req.params.id;
   try {
-    const ref = firestore.collection('users').doc(userID);
-    const snapshot = await ref.get();
-
-    if (!snapshot.exists) {
-      console.log('No matching document.');
-      return res.status(404).json({ error: 'No matching document.' });
-    }
+    const result = await getSpesific(req);
 
     // Assuming you want to send the data from the snapshot in the response
-    res.json(snapshot.data());
+    res
+      .status(StatusCodes.OK)
+      .json({ message: 'success retrive the user', data: result });
   } catch (error) {
-    // console.error('Error getting document', error);
-    res.status(500).json({ error: 'Internal Server Error' });
     next(error);
   }
 };
