@@ -1,4 +1,4 @@
-const { register, login } = require('../services/auth');
+const { register, login, test } = require('../services/auth'); //added test
 const { StatusCodes } = require('http-status-codes');
 
 const userRegister = async (req, res, next) => {
@@ -26,7 +26,24 @@ const userLogin = async (req, res, next) => {
   }
 };
 
+// added test
+const testAuth = async (req, res, next) => {
+  try {
+    const result = await test();
+
+    console.log(result);
+
+    res
+      .status(StatusCodes.OK)
+      .json({ result });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   userRegister,
   userLogin,
+  // added test
+  testAuth,
 };

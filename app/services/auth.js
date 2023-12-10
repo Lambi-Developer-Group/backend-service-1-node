@@ -1,23 +1,23 @@
 const { Firestore } = require('@google-cloud/firestore');
+const {OAuth2Client} = require('google-auth-library');
 const firestore = new Firestore();
 const bcrypt = require('bcryptjs');
 const { BadRequest } = require('../errors');
+const axios = require('axios');
 
 // [async function way] push user creds to Firestore with autoGen ID
-async function pushUser(firstName, lastName, age, password, email) {
+async function pushUser(name, locale, email) {
   const timestamp = Date.now();
   const date = new Date(timestamp);
   const formattedDate = date.toISOString();
   const res = await firestore.collection('users').add({
-    firstName: firstName,
-    lastName: lastName,
-    age: age,
-    password: password,
-    createdAt: formattedDate,
+    name: name,
     email: email,
+    createdAt: formattedDate,
+    locale: locale,
   });
-  console.log('Added document with ID: ', res.id);
-  return res.id;
+  console.log('Added user with Firestore ID: ', res.id);
+  return;
 }
 
 // Hash Password with bcrypt
@@ -49,7 +49,44 @@ const register = async (req) => {
   return userID;
 };
 
+//added test
+const test = async (req) => {
+  console.log('Response: test');
+  return "Test Successful"
+};
+
 const login = async (req) => {
+  const { token } = req.body;
+  console.log('login started');
+
+  if (!token) {
+    throw new BadRequest('Bad Request, Please fill all the required Field');
+  }
+
+  try {
+    // Make a request to the Google API with the provided token
+    const response = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
+    const { email, name, locale} = response.data;
+
+    const userRef = firestore.collection('users').where('email', '==', email);
+    const userSnapshot = await userRef.get();
+  
+    if (userSnapshot.empty) {
+      console.log('Email not found on Firestore. Creating new User in Firestore...');
+      await pushUser(name, locale, email);
+    }else{
+      console.log('Email found on Firestore. Login in...');
+      return email;
+    }
+    return email;
+  } catch (error) {
+    console.log(error);
+    throw new BadRequest('Internal Server Error');
+  }
+  return ;
+};
+
+const loginDump = async (req) => {
   const { email, password } = req.body;
   console.log('login started', email);
 
@@ -81,4 +118,6 @@ module.exports = {
   hashPassword,
   register,
   login,
+  //added test
+  test,
 };
