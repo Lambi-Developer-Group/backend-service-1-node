@@ -42,18 +42,45 @@ const getAll = async (req) => {
     const response = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
     const { email } = response.data;
 
-    const userRef = firestore.collection('sessions').where('email', '==', email);
-    const userSnapshot = await userRef.get();
+    const sessionRef = firestore.collection('sessions').where('email', '==', email);
+    const sessionSnapshot = await sessionRef.get();
   
-    if (userSnapshot.empty) {
+    if (sessionSnapshot.empty) {
       throw new BadRequest('Email not found in sessions');
     } else {
       console.log('Sessions found based on Email. Returning sessionIDs...');
       
       // Extracting sessionIDs from the snapshot
-      const sessionIDs = userSnapshot.docs.map(doc => doc.id);
+      const sessionIDs = sessionSnapshot.docs.map(doc => doc.id);
       
       return sessionIDs;
+    }
+  } catch (error) {
+    console.error(error);
+    throw new BadRequest('Internal Server Error');
+  }
+};
+
+const getRecommendations = async (req) => {
+  console.log('getting all recommendationID(s) starts..');
+  const { sessionID } = req.body;
+
+  try {
+    const sessionRef = firestore.collection('sessions').doc(sessionID);
+    const sessionDoc = await sessionRef.get();
+
+    if (!sessionDoc.exists) {
+      throw new BadRequest('Session not found');
+    } else {
+      console.log('Session found based on sessionID. Returning session data...');
+
+      const sessionData = sessionDoc.data();
+
+      const linkArrays = Object.entries(sessionData)
+        .filter(([key, value]) => Array.isArray(value) && value.every(link => link.includes('storage.cloud.google.com')))
+        .map(([key]) => key);
+
+      return linkArrays;
     }
   } catch (error) {
     console.error(error);
@@ -128,4 +155,5 @@ const loginDump = async (req) => {
 module.exports = {
   newSession,
   getAll,
+  getRecommendations,
 };
