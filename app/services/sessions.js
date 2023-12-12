@@ -34,6 +34,33 @@ const newSession = async (req) => {
   return sessionID;
 };
 
+const getAll = async (req) => {
+  console.log('getting all sessions starts..');
+  const { token } = req.body;
+  
+  try {
+    const response = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
+    const { email } = response.data;
+
+    const userRef = firestore.collection('sessions').where('email', '==', email);
+    const userSnapshot = await userRef.get();
+  
+    if (userSnapshot.empty) {
+      throw new BadRequest('Email not found in sessions');
+    } else {
+      console.log('Sessions found based on Email. Returning sessionIDs...');
+      
+      // Extracting sessionIDs from the snapshot
+      const sessionIDs = userSnapshot.docs.map(doc => doc.id);
+      
+      return sessionIDs;
+    }
+  } catch (error) {
+    console.error(error);
+    throw new BadRequest('Internal Server Error');
+  }
+};
+
 //added test
 const test = async (req) => {
   console.log('Response: test');
@@ -100,4 +127,5 @@ const loginDump = async (req) => {
 
 module.exports = {
   newSession,
+  getAll,
 };

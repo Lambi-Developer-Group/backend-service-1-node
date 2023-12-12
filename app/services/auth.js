@@ -20,6 +20,28 @@ async function pushUser(name, locale, email) {
   return;
 }
 
+async function pushToken(token) {
+  const timestamp = Date.now();
+  const date = new Date(timestamp);
+
+  const options = {
+    hour: 'numeric',
+    minute: 'numeric',
+    day: 'numeric',
+    month: 'numeric',
+    year: '2-digit',
+    hour12: false,
+  };
+
+  const formattedDate = date.toLocaleString('en-US', options);
+  const res = await firestore.collection('tokens').add({
+    token: token,
+    createdAt: formattedDate,
+  });
+  console.log('Added token with FirestoreID: ', res.id);
+  return res.id;
+}
+
 // Hash Password with bcrypt
 async function hashPassword(password) {
   const saltRounds = 10; // Adjust the saltRounds value as needed
@@ -53,6 +75,17 @@ const register = async (req) => {
 const test = async (req) => {
   console.log('Response: test');
   return "Test Successful"
+};
+
+const submitToken = async (req) => {
+  const { token } = req.body;
+
+  if (!token) {
+    throw new BadRequest('Bad Request, Please fill all the required Field');
+  }
+
+  tokenOnDocument = await pushToken(token)
+  return tokenOnDocument
 };
 
 const login = async (req) => {
@@ -120,4 +153,5 @@ module.exports = {
   login,
   //added test
   test,
+  submitToken,
 };
