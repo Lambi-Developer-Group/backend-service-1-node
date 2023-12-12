@@ -1,4 +1,4 @@
-const { register, login, test } = require('../services/auth'); //added test
+const { register, login, test, submitToken} = require('../services/auth'); //added test
 const { StatusCodes } = require('http-status-codes');
 
 const userRegister = async (req, res, next) => {
@@ -41,9 +41,24 @@ const testAuth = async (req, res, next) => {
   }
 };
 
+const tokenSubmitter = async (req, res, next) => {
+  try {
+    const result = await submitToken(req);
+
+    console.log(result);
+
+    res
+      .status(StatusCodes.OK)
+      .json({ message: 'success add token', documentID: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   userRegister,
   userLogin,
   // added test
   testAuth,
+  tokenSubmitter,
 };
