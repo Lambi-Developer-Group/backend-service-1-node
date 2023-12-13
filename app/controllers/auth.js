@@ -1,6 +1,16 @@
 const { register, login } = require('../services/auth');
 const { StatusCodes } = require('http-status-codes');
 
+const test = async (req, res, next) => {
+  try {
+    res.status(StatusCodes.OK).json({
+      message: 'auth route',
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const userRegister = async (req, res, next) => {
   try {
     const result = await register(req);
@@ -29,4 +39,5 @@ const userLogin = async (req, res, next) => {
 module.exports = {
   userRegister,
   userLogin,
+  test,
 };
