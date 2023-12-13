@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express();
 
-const { getAllBucketImages, addImages } = require('../controllers/images');
+const { getAllBucketImages, addImage } = require('../controllers/images');
 
 router.get('/', getAllBucketImages);
-router.post('/', addImages);
+router.post('/', addImage);
 
 module.exports = router;

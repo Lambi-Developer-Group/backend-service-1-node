@@ -46,46 +46,126 @@ let processFile = Multer({
 let processFileMiddleware = util.promisify(processFile);
 
 // push file info to Firestore with autoGen ID
-async function pushFileInfo(sessionID, userID, fileName) {
-  const docRef = firestore.collection('images').doc(sessionID);
+async function pushFileInfo(publicUrl, color, fileName) {
+  try {
+    const timestamp = Date.now();
+    const date = new Date(timestamp);
+    const formattedDate = date.toISOString();
 
-  // Set the data for the document
-  await docRef.set({
-    userID: userID,
-    fileName: [fileName],
-  });
+    const imageEntry = {
+      color: color,
+      publicUrl: publicUrl,
+    };
 
-  console.log('Upload complete');
-  console.log('Added document with sessionID: ', sessionID);
-  return sessionID;
+    const documentData = {
+      createdAt: formattedDate,
+      images: {
+        [fileName]: imageEntry,
+      },
+    };
+
+    const res = await firestore.collection('images').add(documentData);
+
+    console.log('Added image collection on images with Firestore ID: ', res.id);
+    return res.id;
+  } catch (error) {
+    console.error(error);
+    throw new BadRequest('Internal Server Error');
+  }
+}
+
+// push file info to current sessionID
+async function pushSessionFileInfo(sessionID, imageID) {
+  try {
+    const docRef = firestore.collection('sessions').doc(sessionID);
+
+    await docRef.set({
+      imageID: imageID,
+    }, { merge: true });
+
+    console.log('Added imageID on session: ', sessionID);
+    return sessionID;
+  } catch (error) {
+    console.error(error);
+    throw new BadRequest('Internal Server Error');
+  }
 }
 
 // put file info to existing array document with correct sessionID
-async function putFileInfo(sessionID, fileName) {
-  // Retrieve the document reference for the specified session ID
-  const docRef = firestore.collection('images').doc(sessionID);
+async function putFileInfo(sessionID, publicUrl, color, fileName) {
+  try {
+    const docRef = firestore.collection('sessions').doc(sessionID);
+    const docSnapshot = await docRef.get();
 
-  // Get the current document data
-  const docSnapshot = await docRef.get();
-  if (!docSnapshot.exists) {
-    console.error('Document does not exist');
-    return;
+    if (!docSnapshot.exists) {
+      throw new BadRequest('Session not found');
+    }
+
+    const sessionData = docSnapshot.data();
+    const imageID = sessionData.imageID;
+
+    if (!imageID) {
+      throw new BadRequest('Fatal, ImageID not found in session');
+    }
+
+    const timestamp = Date.now();
+    const date = new Date(timestamp);
+    const formattedDate = date.toISOString();
+
+    const imageEntry = {
+      color: color,
+      publicUrl: publicUrl,
+    };
+
+    const documentData = {
+      createdAt: formattedDate,
+      images: {
+        [fileName]: imageEntry,
+      },
+    };
+
+    const imageDocRef = firestore.collection('images').doc(imageID);
+
+    // Use set to update the existing document or create a new one if it doesn't exist
+    await imageDocRef.set(documentData, { merge: true });
+
+    console.log('Added image collection on images with Firestore ID: ', imageID);
+    return imageID;
+  } catch (error) {
+    console.error(error);
+    throw new BadRequest('Internal Server Error');
   }
-
-  // Update the 'fileName' array in the document
-  const currentData = docSnapshot.data();
-  const currentFileNameArray = currentData.fileName || [];
-  currentFileNameArray.push(fileName);
-
-  // Update the document with the new 'fileName' array
-  await docRef.update({
-    fileName: currentFileNameArray,
-  });
-  console.log('Added document with sessionID: ', sessionID);
-  return sessionID;
 }
 
 async function isSameSession(sessionID) {
+  try {
+    const sessionRef = firestore.collection('sessions').doc(sessionID);
+    const sessionDoc = await sessionRef.get();
+
+    if (!sessionDoc.exists) {
+      throw new BadRequest('Session not found');
+    } else {
+      console.log('Session found based on sessionID');
+      
+      const sessionData = sessionDoc.data();
+      
+      const hasImage = sessionData.hasOwnProperty('imageID');
+
+      if (hasImage) {
+        console.log('Session has imageID');
+        return true;
+      } else {
+        console.log('Session does not have imageID. Creating imageID..');
+        return false;
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    throw new BadRequest('Internal Server Error');
+  }
+}
+
+async function isSameImageDocument(sessionID) {
   const imageRef = firestore.collection('images').doc(sessionID);
 
   try {
@@ -121,8 +201,8 @@ const getAllImages = async () => {
 };
 
 // function to add image to Cloud Storage and store its info on Firestore
-const addImagesToBucket = async (req, res) => {
-  console.log('uploading start');
+const addImageInBucketAndFirestore = async (req, res) => {
+  console.log('uploading file to bucket started');
 
   await processFileMiddleware(req, res);
 
@@ -148,24 +228,18 @@ const addImagesToBucket = async (req, res) => {
   blobStream.on('finish', async (data) => {
     // Create URL for direct file access via HTTP.
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
-    const { userID, sessionID } = req.body;
-
-    if (!userID) {
-      throw new BadRequest('Saving to Firestore Failed!');
-    }
+    const { sessionID, color } = req.body;
 
     if (await isSameSession(sessionID)) {
-      await putFileInfo(sessionID, fileName);
+      const imageID = await putFileInfo(sessionID, publicUrl, color, fileName);
+      const result = { imageID, fileName, publicUrl };
+      return result;
     } else {
-      await pushFileInfo(sessionID, userID, fileName);
+      const imageID = await pushFileInfo(publicUrl, color, fileName);
+      await pushSessionFileInfo(sessionID, imageID)
+      const result = { imageID, fileName, publicUrl };
+      return result;
     }
-
-    // Move the pushFileInfo call inside the finish event
-    // await pushFileInfo(sessionID, userID, fileName)
-
-    // Now send the response after processing is complete
-    const result = { fileName, publicUrl };
-    return result;
   });
 
   blobStream.end(req.file.buffer);
@@ -176,5 +250,5 @@ module.exports = {
   deleteFile,
   deleteFiles,
   getAllImages,
-  addImagesToBucket,
+  addImageInBucketAndFirestore,
 };
