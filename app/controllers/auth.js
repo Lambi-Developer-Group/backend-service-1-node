@@ -1,4 +1,4 @@
-const { register, login, test, submitToken } = require('../services/auth'); //added test
+const { register, login, submitToken } = require('../services/auth'); //added test
 const { StatusCodes } = require('http-status-codes');
 
 const test = async (req, res, next) => {

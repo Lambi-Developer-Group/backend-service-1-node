@@ -15,6 +15,7 @@ const authRouter = require('./app/routers/authRouter');
 const userRouter = require('./app/routers/userRouter');
 const imageRouter = require('./app/routers/imageRouter');
 const sessionRouter = require('./app/routers/sessionRouter');
+const recommendationRouter = require('./app/routers/recommendationRouter');
 
 // Middleware to parse JSON in requests
 app.use(logger('dev'));
@@ -29,6 +30,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
 app.use('/api/images', imageRouter);
 app.use('/api/sessions', sessionRouter);
+app.use('/api/recommendations', recommendationRouter);
 
 // middleware
 app.use(notFoundMiddleware);
