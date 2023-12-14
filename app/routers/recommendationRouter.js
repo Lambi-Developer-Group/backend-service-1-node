@@ -1,8 +1,12 @@
 const express = require('express');
 const router = express();
 
-const { getRecommendation } = require('../controllers/recommendation');
+const {
+  getRecommendationId,
+  getRecommendationImages,
+} = require('../controllers/recommendation');
 
-router.get('/:sessionId', getRecommendation);
+router.get('/:sessionId', getRecommendationId);
+router.get('/:sessionId/:recommendationId', getRecommendationImages);
 
 module.exports = router;

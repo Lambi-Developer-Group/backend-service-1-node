@@ -8,7 +8,7 @@ const getImageID = async (sessionId) => {
   const doc = await sessionRef.get();
 
   if (!doc.exists) {
-    throw new NotFound('No Such Document');
+    throw new NotFound('No Such Session');
   }
 
   return doc.data().imageID;
@@ -19,7 +19,7 @@ const getImagesByID = async (imageID) => {
   const doc = await imageRef.get();
 
   if (!doc.exists) {
-    throw new NotFound('No Such Document');
+    throw new NotFound('No Such Image ID');
   }
 
   return doc.data().images;
@@ -51,6 +51,24 @@ const getRecommendationID = async (req) => {
   return recommendationID;
 };
 
+const getImages = async (req) => {
+  const { sessionId, recommendationId } = req.params;
+
+  const sessionRef = db.collection('sessions').doc(sessionId);
+  const doc = await sessionRef.get();
+
+  if (!doc.exists) {
+    throw new NotFound('No Such Session');
+  }
+
+  if (!doc.data()[recommendationId]) {
+    throw new NotFound('No Images with its recommendation ID');
+  }
+
+  return doc.data()[recommendationId];
+};
+
 module.exports = {
   getRecommendationID,
+  getImages,
 };

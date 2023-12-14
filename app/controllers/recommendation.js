@@ -1,21 +1,33 @@
-const { getRecommendationID } = require('../services/recommend');
+const { getRecommendationID, getImages } = require('../services/recommend');
 const { StatusCodes } = require('http-status-codes');
 
-const getRecommendation = async (req, res, next) => {
+const getRecommendationId = async (req, res, next) => {
   try {
     const result = await getRecommendationID(req);
 
-    res
-      .status(StatusCodes.OK)
-      .json({
-        message: 'recommendation by Session ID',
-        data: { recommendationID: result },
-      });
+    res.status(StatusCodes.OK).json({
+      message: 'recommendation by Session ID',
+      data: { recommendationID: result },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getRecommendationImages = async (req, res, next) => {
+  try {
+    const result = await getImages(req);
+
+    res.status(StatusCodes.OK).json({
+      message: 'success to retrive all images',
+      data: result,
+    });
   } catch (err) {
     next(err);
   }
 };
 
 module.exports = {
-  getRecommendation,
+  getRecommendationId,
+  getRecommendationImages,
 };
