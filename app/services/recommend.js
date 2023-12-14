@@ -34,7 +34,8 @@ const storeToSessionDocument = async (images, sessionId) => {
 };
 
 const getRecommendationID = async (req) => {
-  const { sessionId } = req.params;
+  const { sessionId } = req.body;
+  console.log(req.headers.sessionid);
 
   const imageID = await getImageID(sessionId);
   const images = await getImagesByID(imageID);
@@ -52,7 +53,7 @@ const getRecommendationID = async (req) => {
 };
 
 const getImages = async (req) => {
-  const { sessionId, recommendationId } = req.params;
+  const { sessionId, recommendationId } = req.body;
 
   const sessionRef = db.collection('sessions').doc(sessionId);
   const doc = await sessionRef.get();

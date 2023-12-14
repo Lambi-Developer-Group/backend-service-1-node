@@ -6,7 +6,7 @@ const {
   getRecommendationImages,
 } = require('../controllers/recommendation');
 
-router.get('/:sessionId', getRecommendationId);
-router.get('/:sessionId/:recommendationId', getRecommendationImages);
+router.post('/', getRecommendationId);
+router.post('/images', getRecommendationImages);
 
 module.exports = router;
