@@ -110,25 +110,30 @@ const getAll = async (req) => {
 };
 
 const getRecommendations = async (req) => {
-  console.log('getting all recommendationID(s) starts..');
-  const { sessionID } = req.body;
+  console.log('Getting all recommendationIDs...');
 
   try {
+    const { sessionID } = req.body;
+    console.log("Request body session: ", sessionID);
+
     const sessionRef = firestore.collection('sessions').doc(sessionID);
     const sessionDoc = await sessionRef.get();
 
     if (!sessionDoc.exists) {
       throw new BadRequest('Session not found');
     } else {
-      console.log('Session found based on sessionID. Returning session data...');
+      console.log('Session found based on sessionID. Returning recommendationIDs...');
 
       const sessionData = sessionDoc.data();
+      const recommendationIDs = [];
 
-      const linkArrays = Object.entries(sessionData)
-        .filter(([key, value]) => Array.isArray(value) && value.every(link => link.includes('storage.cloud.google.com')))
-        .map(([key]) => key);
+      for (const key in sessionData) {
+        if (Array.isArray(sessionData[key])) {
+          recommendationIDs.push(key);
+        }
+      }
 
-      return linkArrays;
+      return recommendationIDs;
     }
   } catch (error) {
     console.error(error);
