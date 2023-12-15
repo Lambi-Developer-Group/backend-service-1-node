@@ -40,9 +40,7 @@ const getRecommendationID = async (req) => {
   const imageID = await getImageID(sessionId);
   const images = await getImagesByID(imageID);
 
-  const imagesArray = Object.entries(images).map(
-    ([key, value]) => value.publicUrl
-  );
+  const imagesArray = Object.entries(images).map(([key, value]) => value);
 
   const recommendationID = await storeToSessionDocument(
     [imagesArray[0], imagesArray[1]],
