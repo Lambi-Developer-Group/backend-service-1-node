@@ -1,5 +1,15 @@
-const { register, login, test, submitToken} = require('../services/auth'); //added test
+const { register, login, submitToken } = require('../services/auth'); //added test
 const { StatusCodes } = require('http-status-codes');
+
+const test = async (req, res, next) => {
+  try {
+    res.status(StatusCodes.OK).json({
+      message: 'auth route',
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 const userRegister = async (req, res, next) => {
   try {
@@ -33,9 +43,7 @@ const testAuth = async (req, res, next) => {
 
     console.log(result);
 
-    res
-      .status(StatusCodes.OK)
-      .json({ result });
+    res.status(StatusCodes.OK).json({ result });
   } catch (error) {
     next(error);
   }
@@ -61,4 +69,5 @@ module.exports = {
   // added test
   testAuth,
   tokenSubmitter,
+  test,
 };
