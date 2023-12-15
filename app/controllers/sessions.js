@@ -1,4 +1,4 @@
-const { newSession, getAll, getRecommendations } = require('../services/sessions');
+const { newSession, getAll, getRecommendations, deleteSession } = require('../services/sessions');
 const { StatusCodes } = require('http-status-codes');
 
 const createNewSession = async (req, res, next) => {
@@ -10,6 +10,18 @@ const createNewSession = async (req, res, next) => {
     res
       .status(StatusCodes.OK)
       .json({ message: 'success created new session', sessionID: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteAllSession = async (req, res, next) => {
+  try {
+    const result = await deleteSession(req);
+
+    res
+      .status(StatusCodes.OK)
+      .json({ message: 'success delete sessions', email: result });
   } catch (error) {
     next(error);
   }
@@ -47,4 +59,5 @@ module.exports = {
   createNewSession,
   getAllSession,
   getAllRecomendation,
+  deleteAllSession,
 };

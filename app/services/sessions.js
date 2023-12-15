@@ -17,6 +17,30 @@ async function pushSession(email) {
   return res.id;
 }
 
+async function deleteSessions(email) {
+  try {
+    const querySnapshot = await firestore.collection('sessions').where('email', '==', email).get();
+
+    const deletePromises = [];
+    querySnapshot.forEach((doc) => {
+      const deletePromise = firestore.collection('sessions').doc(doc.id).delete();
+      deletePromises.push(deletePromise);
+    });
+
+    await Promise.all(deletePromises);
+
+    console.log(`Deleted all sessions associated with email: ${email}`);
+  } catch (error) {
+    console.error('Error deleting sessions:', error);
+
+    if (error.code === 'not-found') {
+      throw new BadRequest('Sessions not found for the given email');
+    }
+
+    throw new BadRequest('Internal Server Error');
+  }
+}
+
 const newSession = async (req) => {
   console.log('creating new session starts..');
   const { token } = req.body;
@@ -31,6 +55,32 @@ const newSession = async (req) => {
     throw new BadRequest('Internal Server Error');
   }
   return sessionID;
+};
+
+const deleteSession = async (req) => {
+  console.log('deleting session starts..');
+  const { token, email } = req.body;
+
+  if (!email) {
+    try {
+      const response = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
+      const { email } = response.data;
+  
+      await deleteSessions(email)
+      return email;
+    } catch (error) {
+      console.log(error);
+      throw new BadRequest('Internal Server Error');
+    }
+  } else {
+    try {  
+      await deleteSessions(email)
+      return email;
+    } catch (error) {
+      console.log(error);
+      throw new BadRequest('Internal Server Error');
+    }
+  }
 };
 
 const getAll = async (req) => {
@@ -90,4 +140,5 @@ module.exports = {
   newSession,
   getAll,
   getRecommendations,
+  deleteSession,
 };
