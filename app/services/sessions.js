@@ -83,9 +83,14 @@ const deleteSession = async (req) => {
   }
 };
 
-const getAll = async (req) => {
+const broken = async (req) => {
   console.log('getting all sessions starts..');
   const { token } = req.body;
+
+  if (!token) {
+    console.log("Token is undefined");
+    throw new BadRequest('Token is undefined');
+  }
   
   try {
     const response = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
@@ -141,9 +146,40 @@ const getRecommendations = async (req) => {
   }
 };
 
+const getAllSession = async (req) => {
+  console.log('getting all sessions starts..');
+  const { token } = req.body;
+
+  if (!token) {
+    console.log("Token is undefined");
+    throw new BadRequest('Token is undefined');
+  }
+  
+  try {
+    const response = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
+    const { email } = response.data;
+
+    const sessionRef = firestore.collection('sessions').where('email', '==', email);
+    const sessionSnapshot = await sessionRef.get();
+  
+    if (sessionSnapshot.empty) {
+      throw new BadRequest('Email not found in sessions');
+    } else {
+      console.log('Sessions found based on Email. Returning sessionIDs...');
+      
+      const sessionIDs = sessionSnapshot.docs.map(doc => doc.id);
+      
+      return sessionIDs;
+    }
+  } catch (error) {
+    console.error(error);
+    throw new BadRequest('Internal Server Error');
+  }
+};
+
 module.exports = {
   newSession,
-  getAll,
   getRecommendations,
   deleteSession,
+  getAllSession,
 };

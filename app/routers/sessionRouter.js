@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express();
 
-const { createNewSession, getAllSession, getAllRecomendation, deleteAllSession} = require('../controllers/sessions');
+const { createNewSession, getAllRecomendation, deleteAllSession, getUserSessions} = require('../controllers/sessions');
 
-router.post('/new', createNewSession);
-router.post('/', getAllSession);
-router.post('/recomid', getAllRecomendation);
+router.post('/', getUserSessions);
 router.delete('/', deleteAllSession);
+router.post('/new', createNewSession);
+router.post('/recomid', getAllRecomendation);
 
 module.exports = router;
