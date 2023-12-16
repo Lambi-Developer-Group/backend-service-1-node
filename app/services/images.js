@@ -9,6 +9,8 @@ const maxSize = 2 * 1080 * 1920;
 const bucket = storage.bucket('cc-lambi-private');
 const randGen = require('../services/random-generator');
 
+const os = require('os');
+
 const { BadRequest } = require('../errors');
 
 async function deleteFile(fileName) {
@@ -42,8 +44,6 @@ let processFile = Multer({
   storage: Multer.memoryStorage(),
   limits: { fileSize: maxSize },
 }).single('file');
-
-let processFileMiddleware = util.promisify(processFile);
 
 // push file info to Firestore with autoGen ID
 async function pushFileInfo(sessionID, userID, fileName) {
@@ -121,10 +121,14 @@ const getAllImages = async () => {
 };
 
 // function to add image to Cloud Storage and store its info on Firestore
-const addImagesToBucket = async (req, res) => {
+const addImagesToBucket = async (req) => {
   console.log('uploading start');
 
-  await processFileMiddleware(req, res);
+  const { userID, sessionID } = req.body;
+
+  if (!userID) {
+    throw new BadRequest('Saving to Firestore Failed!');
+  }
 
   if (!req.file) {
     throw new BadRequest('Please upload a file!');
@@ -139,36 +143,27 @@ const addImagesToBucket = async (req, res) => {
     resumable: false,
   });
 
+  let publicUrl = '';
+
   blobStream.on('error', (err) => {
-    res.status(500).send({
-      message: err.message,
-    });
+    throw new BadRequest('blobstream error bang');
   });
 
   blobStream.on('finish', async (data) => {
     // Create URL for direct file access via HTTP.
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
-    const { userID, sessionID } = req.body;
-
-    if (!userID) {
-      throw new BadRequest('Saving to Firestore Failed!');
-    }
-
-    if (await isSameSession(sessionID)) {
+    if (isSameSession(sessionID)) {
       await putFileInfo(sessionID, fileName);
     } else {
       await pushFileInfo(sessionID, userID, fileName);
     }
-
-    // Move the pushFileInfo call inside the finish event
-    // await pushFileInfo(sessionID, userID, fileName)
-
-    // Now send the response after processing is complete
-    const result = { fileName, publicUrl };
-    return result;
   });
 
   blobStream.end(req.file.buffer);
+
+  // Now send the response after processing is complete
+  publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+  const result = { fileName, publicUrl };
+  return result;
 };
 
 // Export the router
@@ -177,4 +172,5 @@ module.exports = {
   deleteFiles,
   getAllImages,
   addImagesToBucket,
+  processFile,
 };
