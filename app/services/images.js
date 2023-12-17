@@ -207,6 +207,8 @@ const getAllImages = async () => {
 };
 
 const blobStreamService = async (req) => {
+  const { sessionID, color } = req.body;
+
   // Generate random file name
   const fileName = randGen() + '.JPG';
   let publicUrl = '';
@@ -224,20 +226,20 @@ const blobStreamService = async (req) => {
 
   blobStream.on('finish', async (data) => {
     // Create URL for direct file access via HTTP.
+    console.log('blobsteam finished');
   });
 
   blobStream.end(req.file.buffer);
 
-  const { sessionID, color } = req.body;
+  publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
 
   if (await isSameSession(sessionID)) {
     imageID = await putFileInfo(sessionID, publicUrl, color, fileName);
+    return { publicUrl, fileName, imageID };
   }
 
   imageID = await pushFileInfo(publicUrl, color, fileName);
   await pushSessionFileInfo(sessionID, imageID);
-
-  publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
   return { publicUrl, fileName, imageID };
 };
 
