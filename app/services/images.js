@@ -206,22 +206,11 @@ const getAllImages = async () => {
   return fileNames;
 };
 
-// function to add image to Cloud Storage and store its info on Firestore
-const addImageInBucketAndFirestore = async (req, res) => {
-  console.log('uploading file to bucket started');
-
-  const { userID, sessionID } = req.body;
-
-  if (!userID) {
-    throw new BadRequest('Saving to Firestore Failed!');
-  }
-
-  if (!req.file) {
-    throw new BadRequest('Please upload a file!');
-  }
-
+const blobStreamService = async (req) => {
   // Generate random file name
   const fileName = randGen() + '.JPG';
+  let publicUrl = '';
+  let imageID = '';
 
   // Create a new blob in the bucket and upload the file data.
   const blob = bucket.file(fileName);
@@ -229,34 +218,38 @@ const addImageInBucketAndFirestore = async (req, res) => {
     resumable: false,
   });
 
-  let publicUrl = '';
-
   blobStream.on('error', (err) => {
     throw new BadRequest('blobstream error bang');
   });
 
   blobStream.on('finish', async (data) => {
     // Create URL for direct file access via HTTP.
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
-    const { sessionID, color } = req.body;
-
-    if (await isSameSession(sessionID)) {
-      const imageID = await putFileInfo(sessionID, publicUrl, color, fileName);
-      const result = { imageID, fileName, publicUrl };
-      return result;
-    } else {
-      const imageID = await pushFileInfo(publicUrl, color, fileName);
-      await pushSessionFileInfo(sessionID, imageID);
-      const result = { imageID, fileName, publicUrl };
-      return result;
-    }
   });
 
   blobStream.end(req.file.buffer);
 
-  // Now send the response after processing is complete
+  const { sessionID, color } = req.body;
+
+  if (await isSameSession(sessionID)) {
+    imageID = await putFileInfo(sessionID, publicUrl, color, fileName);
+  }
+
+  imageID = await pushFileInfo(publicUrl, color, fileName);
+  await pushSessionFileInfo(sessionID, imageID);
+
   publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
-  const result = { fileName, publicUrl };
+  return { publicUrl, fileName, imageID };
+};
+
+// function to add image to Cloud Storage and store its info on Firestore
+const addImageInBucketAndFirestore = (req) => {
+  console.log('uploading file to bucket started');
+
+  if (!req.file) {
+    throw new BadRequest('Please upload a file!');
+  }
+
+  const result = blobStreamService(req);
   return result;
 };
 

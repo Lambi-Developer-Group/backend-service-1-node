@@ -26,7 +26,6 @@ const addImage = async (req, res, next) => {
     res
       .status(StatusCodes.CREATED)
       .json({ message: 'success to upload images', data: result });
-    res.json({ message: 'debugging bang' });
   } catch (err) {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).send({
