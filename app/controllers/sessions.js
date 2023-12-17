@@ -49,7 +49,7 @@ const getUserSessions = async (req, res, next) => {
 
     res
       .status(StatusCodes.OK)
-      .json({ message: 'success', token: result });
+      .json({ message: 'success', sessionID: result });
   } catch (error) {
     next(error);
   }
