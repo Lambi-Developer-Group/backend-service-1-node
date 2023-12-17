@@ -9,6 +9,8 @@ const maxSize = 2 * 1080 * 1920;
 const bucket = storage.bucket('cc-lambi-private');
 const randGen = require('../services/random-generator');
 
+const os = require('os');
+
 const { BadRequest } = require('../errors');
 
 async function deleteFile(fileName) {
@@ -42,8 +44,6 @@ let processFile = Multer({
   storage: Multer.memoryStorage(),
   limits: { fileSize: maxSize },
 }).single('file');
-
-let processFileMiddleware = util.promisify(processFile);
 
 // push file info to Firestore with autoGen ID
 async function pushFileInfo(publicUrl, color, fileName) {
@@ -79,9 +79,12 @@ async function pushSessionFileInfo(sessionID, imageID) {
   try {
     const docRef = firestore.collection('sessions').doc(sessionID);
 
-    await docRef.set({
-      imageID: imageID,
-    }, { merge: true });
+    await docRef.set(
+      {
+        imageID: imageID,
+      },
+      { merge: true }
+    );
 
     console.log('Added imageID on session: ', sessionID);
     return sessionID;
@@ -129,7 +132,10 @@ async function putFileInfo(sessionID, publicUrl, color, fileName) {
     // Use set to update the existing document or create a new one if it doesn't exist
     await imageDocRef.set(documentData, { merge: true });
 
-    console.log('Added image collection on images with Firestore ID: ', imageID);
+    console.log(
+      'Added image collection on images with Firestore ID: ',
+      imageID
+    );
     return imageID;
   } catch (error) {
     console.error(error);
@@ -146,9 +152,9 @@ async function isSameSession(sessionID) {
       throw new BadRequest('Session not found');
     } else {
       console.log('Session found based on sessionID');
-      
+
       const sessionData = sessionDoc.data();
-      
+
       const hasImage = sessionData.hasOwnProperty('imageID');
 
       if (hasImage) {
@@ -200,18 +206,13 @@ const getAllImages = async () => {
   return fileNames;
 };
 
-// function to add image to Cloud Storage and store its info on Firestore
-const addImageInBucketAndFirestore = async (req, res) => {
-  console.log('uploading file to bucket started');
-
-  await processFileMiddleware(req, res);
-
-  if (!req.file) {
-    throw new BadRequest('Please upload a file!');
-  }
+const blobStreamService = async (req) => {
+  const { sessionID, color } = req.body;
 
   // Generate random file name
   const fileName = randGen() + '.JPG';
+  let publicUrl = '';
+  let imageID = '';
 
   // Create a new blob in the bucket and upload the file data.
   const blob = bucket.file(fileName);
@@ -220,29 +221,38 @@ const addImageInBucketAndFirestore = async (req, res) => {
   });
 
   blobStream.on('error', (err) => {
-    res.status(500).send({
-      message: err.message,
-    });
+    throw new BadRequest('blobstream error bang');
   });
 
   blobStream.on('finish', async (data) => {
     // Create URL for direct file access via HTTP.
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
-    const { sessionID, color } = req.body;
-
-    if (await isSameSession(sessionID)) {
-      const imageID = await putFileInfo(sessionID, publicUrl, color, fileName);
-      const result = { imageID, fileName, publicUrl };
-      return result;
-    } else {
-      const imageID = await pushFileInfo(publicUrl, color, fileName);
-      await pushSessionFileInfo(sessionID, imageID)
-      const result = { imageID, fileName, publicUrl };
-      return result;
-    }
+    console.log('blobsteam finished');
   });
 
   blobStream.end(req.file.buffer);
+
+  publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+
+  if (await isSameSession(sessionID)) {
+    imageID = await putFileInfo(sessionID, publicUrl, color, fileName);
+    return { publicUrl, fileName, imageID };
+  }
+
+  imageID = await pushFileInfo(publicUrl, color, fileName);
+  await pushSessionFileInfo(sessionID, imageID);
+  return { publicUrl, fileName, imageID };
+};
+
+// function to add image to Cloud Storage and store its info on Firestore
+const addImageInBucketAndFirestore = (req) => {
+  console.log('uploading file to bucket started');
+
+  if (!req.file) {
+    throw new BadRequest('Please upload a file!');
+  }
+
+  const result = blobStreamService(req);
+  return result;
 };
 
 // Export the router
@@ -251,4 +261,5 @@ module.exports = {
   deleteFiles,
   getAllImages,
   addImageInBucketAndFirestore,
+  processFile,
 };
