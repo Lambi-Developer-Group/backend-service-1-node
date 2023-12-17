@@ -1,12 +1,12 @@
 const { Storage } = require('@google-cloud/storage');
 const storage = new Storage();
-const bucketName = 'cc-lambi-private';
+const bucketName = 'cc-lambi-public';
 const { Firestore } = require('@google-cloud/firestore');
 const firestore = new Firestore();
 const util = require('util');
 const Multer = require('multer');
 const maxSize = 2 * 1080 * 1920;
-const bucket = storage.bucket('cc-lambi-private');
+const bucket = storage.bucket('cc-lambi-public');
 const randGen = require('../services/random-generator');
 
 const os = require('os');
