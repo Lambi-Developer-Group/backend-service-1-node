@@ -3,7 +3,7 @@ const crypto = require('crypto');
 function generate() {
   const randomBytes = crypto.randomBytes(16);
   const randomName = randomBytes.toString('hex');
-  return randomName;
+  return randomName.substring(0, 8);
 }
 
 // function generate(originalName) {

@@ -1,5 +1,8 @@
 const { StatusCodes } = require('http-status-codes');
-const { addImagesToBucket, getAllImages } = require('../services/images');
+const {
+  addImageInBucketAndFirestore,
+  getAllImages,
+} = require('../services/images');
 
 const getAllBucketImages = async (req, res, next) => {
   try {
@@ -15,9 +18,10 @@ const getAllBucketImages = async (req, res, next) => {
 };
 
 // function to add image to Cloud Storage and store its info on Firestore
-const addImages = async (req, res, next) => {
+const addImage = async (req, res, next) => {
   try {
-    const result = await addImagesToBucket(req, res);
+    console.log('uploading start');
+    const result = await addImageInBucketAndFirestore(req);
 
     res
       .status(StatusCodes.CREATED)
@@ -35,5 +39,5 @@ const addImages = async (req, res, next) => {
 
 module.exports = {
   getAllBucketImages,
-  addImages,
+  addImage,
 };

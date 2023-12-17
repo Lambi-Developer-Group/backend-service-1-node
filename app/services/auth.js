@@ -31,6 +31,7 @@ async function pushToken(token) {
     month: 'numeric',
     year: '2-digit',
     hour12: false,
+    timeZone: 'Asia/Jakarta',
   };
 
   const formattedDate = date.toLocaleString('en-US', options);
