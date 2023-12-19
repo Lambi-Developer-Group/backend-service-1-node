@@ -2,6 +2,7 @@ const { Firestore } = require('@google-cloud/firestore');
 const db = new Firestore();
 const { BadRequest, NotFound } = require('../errors');
 const randomName = require('./random-generator');
+const axios = require('axios');
 
 const getImageID = async (sessionId) => {
   const sessionRef = db.collection('sessions').doc(sessionId);
@@ -35,15 +36,16 @@ const storeToSessionDocument = async (images, sessionId) => {
 
 const getRecommendationID = async (req) => {
   const { sessionId } = req.body;
-  console.log(req.headers.sessionid);
 
   const imageID = await getImageID(sessionId);
-  const images = await getImagesByID(imageID);
 
-  const imagesArray = Object.entries(images).map(([key, value]) => value);
+  const response = await axios.post(
+    `https://lambi-model-zn6gm5cepa-et.a.run.app/api/recommendation`,
+    { imageID }
+  );
 
   const recommendationID = await storeToSessionDocument(
-    [imagesArray[0], imagesArray[1]],
+    response.data.data,
     sessionId
   );
 
