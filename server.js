@@ -2,6 +2,8 @@ const express = require('express');
 const app = express();
 const logger = require('morgan');
 const http = require('http');
+const swaggerJSDoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 
 const projectId = 'fashap';
 const port = 3000;
@@ -20,11 +22,33 @@ const recommendationRouter = require('./app/routers/recommendationRouter');
 // Middleware to parse JSON in requests
 app.use(logger('dev'));
 app.use(express.json());
-// app.use(express.urlencoded({ extended: false }));
 
-app.get('/api/', (req, res) => {
-  res.json({ message: 'Welcome to Lambi API' });
-});
+// Swagger definition
+const swaggerOptions = {
+  swaggerDefinition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'LAMBI-API',
+      version: '1.0.0',
+      description: 'Express JS server to handle Android image & Firestore API requests',
+      contact: {
+        email: 'andhika.rahmanu@mail.ugm.ac.id',
+      },
+    },
+    servers: [
+      {
+        url: `http://localhost:${port}/api`,
+        description: 'Local Development Server',
+      },
+    ],
+  },
+  apis: ['./app/**/*.js'], // Path to the API routes
+};
+
+const swaggerSpec = swaggerJSDoc(swaggerOptions);
+
+// Serve Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // routes
 app.use('/api/auth', authRouter);
@@ -42,7 +66,7 @@ const server = http.createServer(app);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
-console.log(`listening to ${port}`);
+console.log(`Listening to http://localhost:${port}`);
 
 /**
  * Event listener for HTTP server "error" event.
@@ -72,7 +96,6 @@ function onError(error) {
 /**
  * Event listener for HTTP server "listening" event.
  */
-
 function onListening() {
   const addr = server.address();
   const bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
