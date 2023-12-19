@@ -19,7 +19,7 @@ const getRecommendationImages = async (req, res, next) => {
     const result = await getImages(req);
 
     res.status(StatusCodes.OK).json({
-      message: 'success to retrive all images',
+      message: 'success to retrive all recommendation of the session',
       data: result,
     });
   } catch (err) {
